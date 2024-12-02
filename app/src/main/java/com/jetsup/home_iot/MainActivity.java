@@ -1,19 +1,12 @@
 package com.jetsup.home_iot;
 
-import android.content.Context;
-import android.content.Intent;
-import android.net.ConnectivityManager;
-import android.net.Network;
-import android.net.NetworkCapabilities;
 import android.os.Bundle;
-import android.provider.Settings;
 import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
-import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.AppCompatButton;
 import androidx.core.graphics.Insets;
@@ -23,6 +16,7 @@ import androidx.core.view.WindowInsetsCompat;
 import com.ekn.gruzer.gaugelibrary.HalfGauge;
 import com.ekn.gruzer.gaugelibrary.Range;
 import com.google.android.material.textfield.TextInputEditText;
+import com.jetsup.home_iot.utils.HomeUtils;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -36,20 +30,19 @@ import okhttp3.Response;
 
 public class MainActivity extends AppCompatActivity {
     private static final long DATA_LATENCY_BEFORE_CHECKING_CONNECTION = 1000;
-    static OkHttpClient client = new OkHttpClient();
-    Request request;
-
+    public static String ipHostname;
+    public static volatile boolean serverReachable = false;
+    public static volatile boolean shouldQuery = false;
+    public static OkHttpClient client = new OkHttpClient();
+    public static Request request;
+    public static String serverIPAddress;
+    public static long lastDataReceiveTime;
     TextView tvTime;
     TextView tvDate;
     HalfGauge gaugeTemperature;
     HalfGauge gaugeHumidity;
     AppCompatButton btnConnectToServer;
     TextInputEditText etServerAddress;
-    String serverIPAddress;
-    private volatile boolean serverReachable = false;
-    private volatile boolean shouldQuery = false;
-    private String ipHostname;
-    private long lastDataReceiveTime;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -76,12 +69,11 @@ public class MainActivity extends AppCompatActivity {
                 // TODO: check if the device is connected to WiFi network
                 if (btnConnectToServer.getText().toString().equalsIgnoreCase("connect")) {
                     shouldQuery = true;
-                    if (!MainActivity.this.isWiFiNetworkConnected()) {
+                    if (!HomeUtils.isWiFiNetworkConnected(MainActivity.this)) {
                         Toast.makeText(MainActivity.this, "Please connect to WiFi network", Toast.LENGTH_LONG).show();
-                        MainActivity.this.showWifiSettingsDialog();
+                        HomeUtils.showWifiSettingsDialog(MainActivity.this);
                         return;
                     }
-
 
                     if (Objects.requireNonNull(etServerAddress.getText()).toString().isEmpty()) {
                         etServerAddress.setError("Please enter server address");
@@ -99,10 +91,22 @@ public class MainActivity extends AppCompatActivity {
                     }
                     new Thread(() -> {
                         while (!serverReachable) {
-                            if (!MainActivity.this.pingServer(ipHostname)) {
+                            if (!HomeUtils.pingServer(MainActivity.this, ipHostname)) {
                                 MainActivity.this.runOnUiThread(() -> {
                                     Toast.makeText(MainActivity.this, "The server 'http://" + ipHostname + "' did not respond!",
                                             Toast.LENGTH_SHORT).show();
+                                    //
+                                    etServerAddress.setError("Server is not reachable");
+                                    etServerAddress.setEnabled(true);
+
+                                    btnConnectToServer.setText("Connect");
+                                });
+                            } else {
+                                runOnUiThread(() -> {
+                                    etServerAddress.setError(null);
+                                    etServerAddress.setEnabled(false);
+
+                                    btnConnectToServer.setText("Disconnect");
                                 });
                             }
 
@@ -220,7 +224,7 @@ public class MainActivity extends AppCompatActivity {
                         });
                     } catch (Exception e) {
                         e.printStackTrace();
-                        pingServer(ipHostname);
+                        HomeUtils.pingServer(MainActivity.this, ipHostname);
 
                         Log.e("MyTag", "Thread Error: " + e.getMessage());
                     }
@@ -233,90 +237,11 @@ public class MainActivity extends AppCompatActivity {
                 } else {
                     if (ipHostname != null && shouldQuery && !serverReachable) {
                         Log.i("MyTag", "While Else: " + ipHostname);
-                        pingServer(ipHostname);
+                        HomeUtils.pingServer(MainActivity.this, ipHostname);
                     }
                 }
             }
         }).start();
     }
 
-    private boolean pingServer(String ipHostname) {
-        // send a get request to http://ipHostname/api/v1/ping/ using okHttp if the status is 200, then return true
-        String pingURL = "http://" + ipHostname + "/api/v1/ping/";
-        final Request req = new Request.Builder()
-                .url(pingURL)
-                .build();
-
-        try (Response response = client.newCall(req).execute()) {
-            Log.i("MyTag", "Response: " + response);
-
-            if (response.isSuccessful()) {
-                runOnUiThread(() -> {
-                    etServerAddress.setError(null);
-                    etServerAddress.setEnabled(false);
-
-                    btnConnectToServer.setText("Disconnect");
-                });
-                serverReachable = true;
-                lastDataReceiveTime = System.currentTimeMillis();
-
-                request = new Request.Builder()
-                        .url(serverIPAddress + "stats/")
-                        .build();
-            } else {
-                runOnUiThread(() -> {
-                    etServerAddress.setError("Server is not reachable");
-                    etServerAddress.setEnabled(true);
-
-                    btnConnectToServer.setText("Connect");
-                });
-                serverReachable = false;
-                Log.e("MyTag", "Server is not reachable");
-                Toast.makeText(this, "Server is not reachable", Toast.LENGTH_SHORT).show();
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-            runOnUiThread(() -> {
-                etServerAddress.setError("Server is not reachable");
-                etServerAddress.setEnabled(true);
-
-                btnConnectToServer.setText("Connect");
-            });
-            serverReachable = false;
-            Log.e("MyTag", "Error: " + e.getMessage());
-        }
-
-        return serverReachable;
-    }
-
-    private boolean isWiFiNetworkConnected() {
-        ConnectivityManager connectivityManager =
-                (ConnectivityManager) this.getSystemService(Context.CONNECTIVITY_SERVICE);
-
-        if (connectivityManager != null) {
-            Network network = connectivityManager.getActiveNetwork();
-            if (network != null) {
-                NetworkCapabilities capabilities = connectivityManager.getNetworkCapabilities(network);
-                if (capabilities != null) {
-                    return capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI);
-                }
-            }
-        }
-        return false;
-    }
-
-    private void showWifiSettingsDialog() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("Wi-Fi Required")
-                .setMessage("Wi-Fi is not connected. Please enable Wi-Fi in settings.")
-                .setPositiveButton("Go to Settings", (dialog, which) -> openWifiSettings())
-                .setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss())
-                .setCancelable(false)
-                .show();
-    }
-
-    private void openWifiSettings() {
-        Intent intent = new Intent(Settings.ACTION_WIFI_SETTINGS);
-        this.startActivity(intent);
-    }
 }
