@@ -1,10 +1,19 @@
 package com.jetsup.home_iot;
 
+import android.content.Context;
+import android.content.Intent;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.util.Log;
+import android.view.View;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.activity.EdgeToEdge;
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.AppCompatButton;
 import androidx.core.graphics.Insets;
@@ -15,6 +24,7 @@ import com.ekn.gruzer.gaugelibrary.HalfGauge;
 import com.ekn.gruzer.gaugelibrary.Range;
 import com.google.android.material.textfield.TextInputEditText;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.Locale;
@@ -25,16 +35,21 @@ import okhttp3.Request;
 import okhttp3.Response;
 
 public class MainActivity extends AppCompatActivity {
+    private static final long DATA_LATENCY_BEFORE_CHECKING_CONNECTION = 1000;
+    static OkHttpClient client = new OkHttpClient();
+    Request request;
+
     TextView tvTime;
     TextView tvDate;
-
     HalfGauge gaugeTemperature;
     HalfGauge gaugeHumidity;
-
     AppCompatButton btnConnectToServer;
     TextInputEditText etServerAddress;
     String serverIPAddress;
-    private Thread serverThread;
+    private volatile boolean serverReachable = false;
+    private volatile boolean shouldQuery = false;
+    private String ipHostname;
+    private long lastDataReceiveTime;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -55,23 +70,58 @@ public class MainActivity extends AppCompatActivity {
         btnConnectToServer = findViewById(R.id.btnConnectServer);
         etServerAddress = findViewById(R.id.etServerAddress);
 
-        btnConnectToServer.setOnClickListener(v -> {
-            if (Objects.requireNonNull(etServerAddress.getText()).toString().isEmpty()) {
-                etServerAddress.setError("Please enter server address");
-                return;
-            }
+        btnConnectToServer.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                // TODO: check if the device is connected to WiFi network
+                if (btnConnectToServer.getText().toString().equalsIgnoreCase("connect")) {
+                    shouldQuery = true;
+                    if (!MainActivity.this.isWiFiNetworkConnected()) {
+                        Toast.makeText(MainActivity.this, "Please connect to WiFi network", Toast.LENGTH_LONG).show();
+                        MainActivity.this.showWifiSettingsDialog();
+                        return;
+                    }
 
-            //  Check if IP address is valid
-            if (!etServerAddress.getText().toString().matches("\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}")) {
-                etServerAddress.setError("Please enter a valid IP address");
-                return;
-            }
 
-            serverIPAddress = etServerAddress.getText().toString().trim();
-            if (serverThread.isAlive()) {
-//                serverThread.interrupt();
+                    if (Objects.requireNonNull(etServerAddress.getText()).toString().isEmpty()) {
+                        etServerAddress.setError("Please enter server address");
+                        return;
+                    }
+
+                    //  Check if IP address is valid
+                    ipHostname = etServerAddress.getText().toString().trim();
+                    // match ipaddress or hostname.local
+                    // FIXME: The hostname.local is not working
+                    if (!ipHostname.matches("\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}") &&
+                            !ipHostname.matches("\\w+\\.local")) {
+                        etServerAddress.setError("Please enter a valid IP address");
+                        return;
+                    }
+                    new Thread(() -> {
+                        while (!serverReachable) {
+                            if (!MainActivity.this.pingServer(ipHostname)) {
+                                MainActivity.this.runOnUiThread(() -> {
+                                    Toast.makeText(MainActivity.this, "The server 'http://" + ipHostname + "' did not respond!",
+                                            Toast.LENGTH_SHORT).show();
+                                });
+                            }
+
+                            try {
+                                Thread.sleep(1000);
+                            } catch (InterruptedException e) {
+                                throw new RuntimeException(e);
+                            }
+                        }
+                    }).start();
+
+                    serverIPAddress = "http://" + ipHostname + "/api/v1/";
+                } else { // disconnect
+                    shouldQuery = false;
+                    serverReachable = false;
+                    btnConnectToServer.setText("Connect");
+                    etServerAddress.setEnabled(true);
+                }
             }
-            // serverThread.start();
         });
 
         gaugeTemperature.enableAnimation(true);
@@ -120,49 +170,42 @@ public class MainActivity extends AppCompatActivity {
         gaugeHumidity.addRange(rangeHumidityHumid);
         gaugeHumidity.setFormatter(value -> String.format(Locale.getDefault(), "%.1f%%", value));
 
-        serverThread = new Thread(new Runnable() {
-            final OkHttpClient client = new OkHttpClient();
-            final Request request = new Request.Builder()
-                    // .url("http://" + serverIPAddress + "/api/v1/")
-                    .url("http://192.168.181.140/api/v1/")
-                    .build();
+        new Thread(() -> {
+            double temperature, previousTemperature = 0;
+            double humidity, previousHumidity = 0;
+            String time;
+            String date;
 
-            @Override
-            public void run() {
-                double temperature, previousTemperature = 0;
-                double humidity, previousHumidity = 0;
-                String time;
-                String date;
-
-                while (true) {
+            while (true) {
+                if (serverReachable && shouldQuery && lastDataReceiveTime < System.currentTimeMillis() - DATA_LATENCY_BEFORE_CHECKING_CONNECTION) {
                     try (Response response = client.newCall(request).execute()) {
                         if (!response.isSuccessful()) {
-                            Log.e("M", "Unexpected code " + response);
+                            Log.e("MyTag", "Unexpected code " + response);
                         }
 
                         if (response.body() == null) {
-                            Log.d("M", "Response body is null");
+                            Log.d("MyTag", "Response body is null");
                         }
 
                         String body = response.body().string();
-                        Log.i("M", "Response: " + body);
+                        Log.i("MyTag", "Response: " + body);
 
                         // parse JSON
-                        JSONObject json = new JSONObject(body);
-                        temperature = json.getDouble("temperature");
-                        humidity = json.getDouble("humidity");
-                        time = json.getString("time");
-                        date = json.getString("date");
+                        try {
+                            JSONObject json = new JSONObject(body);
+                            temperature = json.getDouble("temperature");
+                            humidity = json.getDouble("humidity");
+                            time = json.getString("time");
+                            date = json.getString("date");
+                        } catch (JSONException e) {
+                            Log.e("MyTag", "JSON Error: " + e.getMessage());
+                            continue;
+                        }
                         // convert date to human readable format dd/MM/yyyy
                         date = date.substring(8) + "/" + date.substring(5, 7) + "/" + date.substring(0, 4);
 
                         previousTemperature = temperature != 0 ? temperature : previousTemperature;
                         previousHumidity = humidity != 0 ? humidity : previousHumidity;
-
-                        Log.i("M", "Temperature: " + temperature);
-                        Log.i("M", "Humidity: " + humidity);
-                        Log.i("M", "Time: " + time);
-                        Log.i("M", "Date: " + date);
 
                         // update UI
                         double finalTemperature = temperature != 0 ? temperature : previousTemperature;
@@ -177,6 +220,9 @@ public class MainActivity extends AppCompatActivity {
                         });
                     } catch (Exception e) {
                         e.printStackTrace();
+                        pingServer(ipHostname);
+
+                        Log.e("MyTag", "Thread Error: " + e.getMessage());
                     }
 
                     try {
@@ -184,10 +230,93 @@ public class MainActivity extends AppCompatActivity {
                     } catch (InterruptedException e) {
                         throw new RuntimeException(e);
                     }
+                } else {
+                    if (ipHostname != null && shouldQuery && !serverReachable) {
+                        Log.i("MyTag", "While Else: " + ipHostname);
+                        pingServer(ipHostname);
+                    }
                 }
             }
-        });
+        }).start();
+    }
 
-        serverThread.start();
+    private boolean pingServer(String ipHostname) {
+        // send a get request to http://ipHostname/api/v1/ping/ using okHttp if the status is 200, then return true
+        String pingURL = "http://" + ipHostname + "/api/v1/ping/";
+        final Request req = new Request.Builder()
+                .url(pingURL)
+                .build();
+
+        try (Response response = client.newCall(req).execute()) {
+            Log.i("MyTag", "Response: " + response);
+
+            if (response.isSuccessful()) {
+                runOnUiThread(() -> {
+                    etServerAddress.setError(null);
+                    etServerAddress.setEnabled(false);
+
+                    btnConnectToServer.setText("Disconnect");
+                });
+                serverReachable = true;
+                lastDataReceiveTime = System.currentTimeMillis();
+
+                request = new Request.Builder()
+                        .url(serverIPAddress + "stats/")
+                        .build();
+            } else {
+                runOnUiThread(() -> {
+                    etServerAddress.setError("Server is not reachable");
+                    etServerAddress.setEnabled(true);
+
+                    btnConnectToServer.setText("Connect");
+                });
+                serverReachable = false;
+                Log.e("MyTag", "Server is not reachable");
+                Toast.makeText(this, "Server is not reachable", Toast.LENGTH_SHORT).show();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+            runOnUiThread(() -> {
+                etServerAddress.setError("Server is not reachable");
+                etServerAddress.setEnabled(true);
+
+                btnConnectToServer.setText("Connect");
+            });
+            serverReachable = false;
+            Log.e("MyTag", "Error: " + e.getMessage());
+        }
+
+        return serverReachable;
+    }
+
+    private boolean isWiFiNetworkConnected() {
+        ConnectivityManager connectivityManager =
+                (ConnectivityManager) this.getSystemService(Context.CONNECTIVITY_SERVICE);
+
+        if (connectivityManager != null) {
+            Network network = connectivityManager.getActiveNetwork();
+            if (network != null) {
+                NetworkCapabilities capabilities = connectivityManager.getNetworkCapabilities(network);
+                if (capabilities != null) {
+                    return capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI);
+                }
+            }
+        }
+        return false;
+    }
+
+    private void showWifiSettingsDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("Wi-Fi Required")
+                .setMessage("Wi-Fi is not connected. Please enable Wi-Fi in settings.")
+                .setPositiveButton("Go to Settings", (dialog, which) -> openWifiSettings())
+                .setNegativeButton("Cancel", (dialog, which) -> dialog.dismiss())
+                .setCancelable(false)
+                .show();
+    }
+
+    private void openWifiSettings() {
+        Intent intent = new Intent(Settings.ACTION_WIFI_SETTINGS);
+        this.startActivity(intent);
     }
 }
