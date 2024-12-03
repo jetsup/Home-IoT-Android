@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/deletedApplianceCard"
+    android:layout_width="match_parent"
+    android:layout_height="90dp"
+    app:cardCornerRadius="10dp"
+    app:cardUseCompatPadding="true"
+    tools:ignore="HardcodedText">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <ImageView
+            android:id="@+id/applianceImage"
+            android:layout_width="80dp"
+            android:layout_height="90dp"
+            android:importantForAccessibility="no"
+            android:src="@drawable/baseline_image_150" />
+
+        <TextView
+            android:id="@+id/applianceName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="10dp"
+            android:layout_marginTop="5dp"
+            android:layout_toEndOf="@id/applianceImage"
+            android:text="Kitchen Main Light"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/applianceName"
+            android:layout_alignParentEnd="true"
+            android:layout_marginTop="10dp">
+
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/btnRestoreAppliance"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginEnd="10dp"
+                android:backgroundTint="@android:color/holo_green_dark"
+                android:drawableStart="@drawable/baseline_settings_backup_restore_24"
+                android:drawableTint="@android:color/white"
+                android:importantForAccessibility="no"
+                android:text="Restore"
+                android:textAllCaps="false"
+                android:textColor="@android:color/white" />
+
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/btnDeleteApplianceForever"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:backgroundTint="@android:color/holo_red_dark"
+                android:drawableStart="@drawable/baseline_delete_forever_24"
+                android:drawableTint="@android:color/white"
+                android:importantForAccessibility="no"
+                android:text="Delete"
+                android:textAllCaps="false"
+                android:textColor="@android:color/white" />
+        </LinearLayout>
+
+
+    </RelativeLayout>
+
+</androidx.cardview.widget.CardView>
