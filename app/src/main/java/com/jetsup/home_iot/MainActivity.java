@@ -76,11 +76,19 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(this, "Home", Toast.LENGTH_SHORT).show();
             } else*/
             if (item.getItemId() == R.id.nav_appliances) {
-                Toast.makeText(this, "Appliances", Toast.LENGTH_SHORT).show();
-                startActivity(new Intent(MainActivity.this, AppliancesActivity.class));
+                if (!serverReachable) {
+                    Toast.makeText(this, "Server not reachable", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(this, "Appliances", Toast.LENGTH_SHORT).show();
+                    startActivity(new Intent(MainActivity.this, AppliancesActivity.class));
+                }
             } else if (item.getItemId() == R.id.nav_deleted_appliances) {
-                Toast.makeText(this, "Deleted Appliances", Toast.LENGTH_SHORT).show();
-                startActivity(new Intent(MainActivity.this, DeletedAppliancesActivity.class));
+                if (!serverReachable) {
+                    Toast.makeText(this, "Server not reachable", Toast.LENGTH_SHORT).show();
+                } else {
+                    Toast.makeText(this, "Deleted Appliances", Toast.LENGTH_SHORT).show();
+                    startActivity(new Intent(MainActivity.this, DeletedAppliancesActivity.class));
+                }
             } else if (item.getItemId() == R.id.nav_settings) {
                 Toast.makeText(this, "Settings", Toast.LENGTH_SHORT).show();
                 startActivity(new Intent(MainActivity.this, SettingsActivity.class));

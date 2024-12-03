@@ -123,6 +123,7 @@
             android:layout_weight="1"
             android:background="@android:color/holo_red_dark"
             android:text="Delete"
+            android:textAllCaps="false"
             android:textColor="@android:color/white"
             android:textSize="20sp"
             android:textStyle="bold" />
@@ -136,6 +137,7 @@
             android:layout_weight="1"
             android:background="@android:color/holo_green_dark"
             android:text="Update"
+            android:textAllCaps="false"
             android:textColor="@android:color/white"
             android:textSize="20sp"
             android:textStyle="bold" />

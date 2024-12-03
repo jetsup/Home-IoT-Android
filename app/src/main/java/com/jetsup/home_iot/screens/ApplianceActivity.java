@@ -1,5 +1,8 @@
 package com.jetsup.home_iot.screens;
 
+import static com.jetsup.home_iot.utils.HomeUtils.ESP32_ALLOWED_IO_PINS;
+import static com.jetsup.home_iot.utils.HomeUtils.ESP32_ALLOWED_O_PINS;
+
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
@@ -26,6 +29,7 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.IOException;
+import java.util.Arrays;
 import java.util.Objects;
 
 import okhttp3.MediaType;
@@ -123,12 +127,33 @@ public class ApplianceActivity extends AppCompatActivity {
 
         btnUpdate.setOnClickListener(v -> {
             applianceName = Objects.requireNonNull(textInputEditTextName.getText()).toString();
+
+            if (Objects.requireNonNull(textInputEditTextPin.getText()).toString().isEmpty()) {
+                textInputLayoutPin.setError("Pin cannot be empty!");
+                textInputEditTextPin.requestFocus();
+                return;
+            } else {
+                textInputLayoutPin.setError(null);
+            }
+
+            int intPin = Integer.parseInt(Objects.requireNonNull(textInputEditTextPin.getText()).toString());
+            if (!Arrays.stream(ESP32_ALLOWED_IO_PINS).anyMatch(i -> i == intPin) &&
+                    !Arrays.stream(ESP32_ALLOWED_O_PINS).anyMatch(i -> i == intPin)
+            ) {
+                textInputLayoutPin.setError("Pin is not allowed!");
+                textInputEditTextPin.requestFocus();
+                return;
+            } else {
+                textInputLayoutPin.setError(null);
+            }
+
             pin = Integer.parseInt(Objects.requireNonNull(textInputEditTextPin.getText()).toString());
             isDigital = spinnerType.getSelectedItemPosition() == 0;
 
             if (applianceName.isEmpty()) {
                 textInputLayoutName.setError("Appliance name cannot be empty!");
                 textInputEditTextName.requestFocus();
+                return;
             } else {
                 textInputLayoutName.setError(null);
             }
@@ -136,6 +161,7 @@ public class ApplianceActivity extends AppCompatActivity {
             if (pin < 1 || pin > 32) {
                 textInputLayoutPin.setError("Pin must be between 1 and 32!");
                 textInputEditTextPin.requestFocus();
+                return;
             } else {
                 textInputLayoutPin.setError(null);
             }
@@ -160,7 +186,16 @@ public class ApplianceActivity extends AppCompatActivity {
                     try (Response response = MainActivity.client.newCall(MainActivity.request).execute()) {
                         if (!response.isSuccessful()) {
                             Log.e("MyTag", "Unexpected code " + response);
+                            return;
                         }
+
+                        if (response.body() == null) {
+                            Log.e("MyTag", "Response body is null");
+                            return;
+                        }
+
+                        Log.e("MyTag", "Response: " + response.body().string());
+                        runOnUiThread(this::finish);
                     } catch (IOException e) {
                         e.printStackTrace();
                         Log.e("MyTag", "Error: " + e.getMessage());

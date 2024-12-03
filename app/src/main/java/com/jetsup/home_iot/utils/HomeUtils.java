@@ -22,6 +22,10 @@ import okhttp3.Request;
 import okhttp3.Response;
 
 public class HomeUtils {
+    public static int[] ESP32_ALLOWED_IO_PINS = {2, 4, 5, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33};
+    public static int[] ESP32_ALLOWED_I_PINS = {34, 35, 36, 39};
+    public static int[] ESP32_ALLOWED_O_PINS = {12};
+
     // Networking
     public static boolean isWiFiNetworkConnected(Context context) {
         ConnectivityManager connectivityManager =
