@@ -1,8 +1,8 @@
 package com.jetsup.home_iot;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -12,10 +12,16 @@ import androidx.appcompat.widget.AppCompatButton;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
+import androidx.drawerlayout.widget.DrawerLayout;
 
 import com.ekn.gruzer.gaugelibrary.HalfGauge;
 import com.ekn.gruzer.gaugelibrary.Range;
+import com.google.android.material.navigation.NavigationView;
 import com.google.android.material.textfield.TextInputEditText;
+import com.jetsup.home_iot.screens.AboutActivity;
+import com.jetsup.home_iot.screens.AppliancesActivity;
+import com.jetsup.home_iot.screens.DeletedAppliancesActivity;
+import com.jetsup.home_iot.screens.SettingsActivity;
 import com.jetsup.home_iot.utils.HomeUtils;
 
 import org.json.JSONException;
@@ -37,6 +43,7 @@ public class MainActivity extends AppCompatActivity {
     public static Request request;
     public static String serverIPAddress;
     public static long lastDataReceiveTime;
+    private static volatile boolean mainThreadServerRun = false;
     TextView tvTime;
     TextView tvDate;
     HalfGauge gaugeTemperature;
@@ -48,7 +55,7 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         EdgeToEdge.enable(this);
-        setContentView(R.layout.activity_main);
+        setContentView(R.layout.drawer_activity_main);
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.main), (v, insets) -> {
             Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
             v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
@@ -63,68 +70,90 @@ public class MainActivity extends AppCompatActivity {
         btnConnectToServer = findViewById(R.id.btnConnectServer);
         etServerAddress = findViewById(R.id.etServerAddress);
 
-        btnConnectToServer.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                // TODO: check if the device is connected to WiFi network
-                if (btnConnectToServer.getText().toString().equalsIgnoreCase("connect")) {
-                    shouldQuery = true;
-                    if (!HomeUtils.isWiFiNetworkConnected(MainActivity.this)) {
-                        Toast.makeText(MainActivity.this, "Please connect to WiFi network", Toast.LENGTH_LONG).show();
-                        HomeUtils.showWifiSettingsDialog(MainActivity.this);
-                        return;
-                    }
+        NavigationView navigationView = findViewById(R.id.main_activity_navigation_view);
+        navigationView.setNavigationItemSelectedListener(item -> {
+            /*if (item.getItemId() == R.id.nav_home) {
+                Toast.makeText(this, "Home", Toast.LENGTH_SHORT).show();
+            } else*/
+            if (item.getItemId() == R.id.nav_appliances) {
+                Toast.makeText(this, "Appliances", Toast.LENGTH_SHORT).show();
+                startActivity(new Intent(MainActivity.this, AppliancesActivity.class));
+            } else if (item.getItemId() == R.id.nav_deleted_appliances) {
+                Toast.makeText(this, "Deleted Appliances", Toast.LENGTH_SHORT).show();
+                startActivity(new Intent(MainActivity.this, DeletedAppliancesActivity.class));
+            } else if (item.getItemId() == R.id.nav_settings) {
+                Toast.makeText(this, "Settings", Toast.LENGTH_SHORT).show();
+                startActivity(new Intent(MainActivity.this, SettingsActivity.class));
+            } else if (item.getItemId() == R.id.nav_about) {
+                Toast.makeText(this, "About", Toast.LENGTH_SHORT).show();
+                startActivity(new Intent(MainActivity.this, AboutActivity.class));
+            }
+            // close the drawer
+            DrawerLayout drawer = findViewById(R.id.drawer_activity_main);
+            drawer.closeDrawers();
+            return true;
+        });
 
-                    if (Objects.requireNonNull(etServerAddress.getText()).toString().isEmpty()) {
-                        etServerAddress.setError("Please enter server address");
-                        return;
-                    }
-
-                    //  Check if IP address is valid
-                    ipHostname = etServerAddress.getText().toString().trim();
-                    // match ipaddress or hostname.local
-                    // FIXME: The hostname.local is not working
-                    if (!ipHostname.matches("\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}") &&
-                            !ipHostname.matches("\\w+\\.local")) {
-                        etServerAddress.setError("Please enter a valid IP address");
-                        return;
-                    }
-                    new Thread(() -> {
-                        while (!serverReachable) {
-                            if (!HomeUtils.pingServer(MainActivity.this, ipHostname)) {
-                                MainActivity.this.runOnUiThread(() -> {
-                                    Toast.makeText(MainActivity.this, "The server 'http://" + ipHostname + "' did not respond!",
-                                            Toast.LENGTH_SHORT).show();
-                                    //
-                                    etServerAddress.setError("Server is not reachable");
-                                    etServerAddress.setEnabled(true);
-
-                                    btnConnectToServer.setText("Connect");
-                                });
-                            } else {
-                                runOnUiThread(() -> {
-                                    etServerAddress.setError(null);
-                                    etServerAddress.setEnabled(false);
-
-                                    btnConnectToServer.setText("Disconnect");
-                                });
-                            }
-
-                            try {
-                                Thread.sleep(1000);
-                            } catch (InterruptedException e) {
-                                throw new RuntimeException(e);
-                            }
-                        }
-                    }).start();
-
-                    serverIPAddress = "http://" + ipHostname + "/api/v1/";
-                } else { // disconnect
-                    shouldQuery = false;
-                    serverReachable = false;
-                    btnConnectToServer.setText("Connect");
-                    etServerAddress.setEnabled(true);
+        btnConnectToServer.setOnClickListener(v -> {
+            // TODO: check if the device is connected to WiFi network
+            if (btnConnectToServer.getText().toString().equalsIgnoreCase("connect")) {
+                shouldQuery = true;
+                if (!HomeUtils.isWiFiNetworkConnected(MainActivity.this)) {
+                    Toast.makeText(MainActivity.this, "Please connect to WiFi network", Toast.LENGTH_LONG).show();
+                    HomeUtils.showWifiSettingsDialog(MainActivity.this);
+                    return;
                 }
+
+                if (Objects.requireNonNull(etServerAddress.getText()).toString().isEmpty()) {
+                    etServerAddress.setError("Please enter server address");
+                    return;
+                }
+
+                //  Check if IP address is valid
+                ipHostname = etServerAddress.getText().toString().trim();
+                // match ipaddress or hostname.local
+                // FIXME: The hostname.local is not working
+                if (!ipHostname.matches("\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}\\.\\d{1,3}") &&
+                        !ipHostname.matches("\\w+\\.local")) {
+                    etServerAddress.setError("Please enter a valid IP address");
+                    return;
+                }
+                new Thread(() -> {
+                    while (!serverReachable) {
+                        if (!HomeUtils.pingServer(MainActivity.this, ipHostname)) {
+                            MainActivity.this.runOnUiThread(() -> {
+                                Toast.makeText(MainActivity.this, "The server 'http://" + ipHostname + "' did not respond!",
+                                        Toast.LENGTH_SHORT).show();
+                                //
+                                etServerAddress.setError("Server is not reachable");
+                                etServerAddress.setEnabled(true);
+
+                                btnConnectToServer.setText(R.string.connect);
+                            });
+                        } else {
+                            runOnUiThread(() -> {
+                                etServerAddress.setError(null);
+                                etServerAddress.setEnabled(false);
+                                mainThreadServerRun = true;
+
+                                btnConnectToServer.setText(R.string.disconnect);
+                            });
+                        }
+
+                        try {
+                            Thread.sleep(1000);
+                        } catch (InterruptedException e) {
+                            throw new RuntimeException(e);
+                        }
+                    }
+                }).start();
+
+                serverIPAddress = "http://" + ipHostname + "/api/v1/";
+            } else { // disconnect
+                shouldQuery = false;
+                serverReachable = false;
+                btnConnectToServer.setText(R.string.connect);
+                etServerAddress.setEnabled(true);
             }
         });
 
@@ -181,14 +210,17 @@ public class MainActivity extends AppCompatActivity {
             String date;
 
             while (true) {
-                if (serverReachable && shouldQuery && lastDataReceiveTime < System.currentTimeMillis() - DATA_LATENCY_BEFORE_CHECKING_CONNECTION) {
+                if (mainThreadServerRun && serverReachable && shouldQuery &&
+                        lastDataReceiveTime < System.currentTimeMillis() - DATA_LATENCY_BEFORE_CHECKING_CONNECTION) {
                     try (Response response = client.newCall(request).execute()) {
                         if (!response.isSuccessful()) {
                             Log.e("MyTag", "Unexpected code " + response);
+                            continue;
                         }
 
                         if (response.body() == null) {
                             Log.d("MyTag", "Response body is null");
+                            continue;
                         }
 
                         String body = response.body().string();
@@ -244,4 +276,22 @@ public class MainActivity extends AppCompatActivity {
         }).start();
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (serverReachable) {
+            request = new Request.Builder()
+                    .url(serverIPAddress + "stats/")
+                    .build();
+
+            mainThreadServerRun = true;
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+
+        mainThreadServerRun = false;
+    }
 }

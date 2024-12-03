@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    tools:ignore="HardcodedText"
+    tools:showIn="navigation_view">
+    <group android:checkableBehavior="none">
+        <!--        <item-->
+        <!--            android:id="@+id/nav_home"-->
+        <!--            android:icon="@drawable/baseline_home_150"-->
+        <!--            android:title="Home" />-->
+
+        <item
+            android:id="@+id/nav_appliances"
+            android:icon="@drawable/baseline_electrical_services_150"
+            android:title="Appliances" />
+
+        <item
+            android:id="@+id/nav_deleted_appliances"
+            android:icon="@drawable/baseline_delete_outline_150"
+            android:title="Deleted Appliances" />
+
+
+    </group>
+
+    <group android:checkableBehavior="none">
+        <item
+            android:id="@+id/nav_settings"
+            android:icon="@drawable/baseline_settings_150"
+            android:title="Settings" />
+
+        <item
+            android:id="@+id/nav_about"
+            android:icon="@drawable/baseline_info_outline_150"
+            android:title="About" />
+    </group>
+
+</menu>

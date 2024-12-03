@@ -1,0 +1,59 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.cardview.widget.CardView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/applianceCard"
+    android:layout_width="match_parent"
+    android:layout_height="100dp"
+    app:cardCornerRadius="10dp"
+    app:cardUseCompatPadding="true"
+    tools:ignore="HardcodedText">
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent">
+
+        <ImageView
+            android:id="@+id/applianceImage"
+            android:layout_width="80dp"
+            android:layout_height="90dp"
+            android:importantForAccessibility="no"
+            android:src="@drawable/baseline_image_150" />
+
+        <TextView
+            android:id="@+id/applianceName"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="10dp"
+            android:layout_marginTop="5dp"
+            android:layout_toEndOf="@id/applianceImage"
+            android:text="Kitchen Main Light"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_below="@id/applianceName"
+            android:layout_marginHorizontal="10dp"
+            android:layout_toEndOf="@id/applianceImage"
+            android:orientation="horizontal">
+
+            <androidx.appcompat.widget.SwitchCompat
+                android:id="@+id/applianceSwitch"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content" />
+
+            <com.google.android.material.slider.Slider
+                android:id="@+id/applianceSlider"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:value="0"
+                android:valueFrom="0"
+                android:valueTo="1023"
+                android:visibility="gone" />
+        </LinearLayout>
+
+    </RelativeLayout>
+
+</androidx.cardview.widget.CardView>
