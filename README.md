@@ -38,6 +38,13 @@ responsible for sending commands to the server application.
 6. Open the app and start controlling your devices
 7. Enjoy!
 
+## Project Limitations
+
+- The UI is user friendly but does not have an appealing design. This is because I am not a UI/UX
+  designer and therefore any help in this area would be appreciated.
+- The UI was designed for a phone with a screen size of 6.8 inches running Android 13. This means
+  that the UI may not look good on other devices.
+
 ## License
 
 This project is licensed under the MIT License.
