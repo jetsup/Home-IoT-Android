@@ -31,7 +31,11 @@
     <string name="pref_key_server_ip_static">pref_server_ip_static</string>
     <string name="pref_title_server_ip_static">Static Server IP</string>
     <string name="pref_key_server_query_interval">pref_server_query_interval</string>
-    <string-array name="appliance_types">
+    <string name="pref_category_key_danger_zone">pref_danger_zone</string>
+    <string name="pref_category_title_danger_zone">Danger Zone</string>
+    <string name="pref_key_reset">pref_reset</string>
+    <string name="pref_title_reset">Reset</string>
+    <string-array name="appliance_signals">
         <item>Digital</item>
         <item>Analog</item>
     </string-array>

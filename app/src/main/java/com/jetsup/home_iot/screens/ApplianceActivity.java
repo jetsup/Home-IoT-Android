@@ -1,7 +1,8 @@
 package com.jetsup.home_iot.screens;
 
-import static com.jetsup.home_iot.utils.HomeUtils.ESP32_ALLOWED_IO_PINS;
-import static com.jetsup.home_iot.utils.HomeUtils.ESP32_ALLOWED_O_PINS;
+import static com.jetsup.home_iot.utils.Constants.ESP32_ALLOWED_IO_PINS;
+import static com.jetsup.home_iot.utils.Constants.ESP32_ALLOWED_O_PINS;
+import static com.jetsup.home_iot.utils.Constants.HOME_LOG_TAG;
 
 import android.os.Bundle;
 import android.text.Editable;
@@ -24,6 +25,7 @@ import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 import com.jetsup.home_iot.MainActivity;
 import com.jetsup.home_iot.R;
+import com.jetsup.home_iot.utils.Constants;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -40,8 +42,9 @@ import okhttp3.Response;
 public class ApplianceActivity extends AppCompatActivity {
     String applianceName;
     boolean isDigital;
-    int pin, oldPin;
+    int pin;
     int value;
+    String category;
 
     TextInputLayout textInputLayoutName;
     TextInputEditText textInputEditTextName;
@@ -60,8 +63,8 @@ public class ApplianceActivity extends AppCompatActivity {
         applianceName = getIntent().getStringExtra("applianceName");
         isDigital = getIntent().getBooleanExtra("isDigital", true);
         pin = getIntent().getIntExtra("pin", 0);
-        oldPin = pin;
         value = getIntent().getIntExtra("value", 0);
+        category = getIntent().getStringExtra("category");
 
         // Initialize the toolbar
         Toolbar toolbar = findViewById(R.id.toolbar);
@@ -88,7 +91,7 @@ public class ApplianceActivity extends AppCompatActivity {
         textInputLayoutPin = findViewById(R.id.tlAppliancePin);
         textInputEditTextPin = findViewById(R.id.etAppliancePin);
 
-        spinnerType = findViewById(R.id.spApplianceType);
+        spinnerType = findViewById(R.id.spApplianceSignal);
 
         btnUpdate = findViewById(R.id.btnApplianceUpdate);
         btnDelete = findViewById(R.id.btnApplianceDelete);
@@ -174,35 +177,39 @@ public class ApplianceActivity extends AppCompatActivity {
                         value = (value >= 1) ? 1 : 0;
                     }
 
-                    json.put("name", applianceName);
-                    json.put("is_digital", isDigital);
-                    json.put("pin", pin);
-                    json.put("old_pin", oldPin);
-                    json.put("value", value);
+                    json.put(Constants.JSON_APPLIANCE_NAME, applianceName);
+                    json.put(Constants.JSON_APPLIANCE_IS_DIGITAL, isDigital);
+                    json.put(Constants.JSON_APPLIANCE_PIN, pin);
+                    json.put(Constants.JSON_APPLIANCE_VALUE, value);
+                    json.put(Constants.JSON_APPLIANCE_CATEGORY, category);
 
                     // send the JSONObject to the server
-                    RequestBody reqBody = RequestBody.create(json.toString(), MediaType.parse("application/json"));
-                    MainActivity.request = new Request.Builder().post(reqBody).url(MainActivity.serverIPAddress + "device/update/").build();
+                    RequestBody reqBody = RequestBody.create(json.toString(),
+                            MediaType.parse("application/json"));
+                    MainActivity.request = new Request.Builder()
+                            .post(reqBody)
+                            .url(MainActivity.serverIPAddress + Constants.API_ENDPOINT_DEVICE_UPDATE)
+                            .build();
                     try (Response response = MainActivity.client.newCall(MainActivity.request).execute()) {
                         if (!response.isSuccessful()) {
-                            Log.e("MyTag", "Unexpected code " + response);
+                            Log.e(HOME_LOG_TAG, "Unexpected code " + response);
                             return;
                         }
 
                         if (response.body() == null) {
-                            Log.e("MyTag", "Response body is null");
+                            Log.e(HOME_LOG_TAG, "Response body is null");
                             return;
                         }
 
-                        Log.e("MyTag", "Response: " + response.body().string());
+                        Log.e(HOME_LOG_TAG, "Response: " + response.body().string());
                         runOnUiThread(this::finish);
                     } catch (IOException e) {
                         e.printStackTrace();
-                        Log.e("MyTag", "Error: " + e.getMessage());
+                        Log.e(HOME_LOG_TAG, "Error: " + e.getMessage());
                     }
                 } catch (JSONException e) {
                     e.printStackTrace();
-                    Log.e("MyTag", "JSON Error: " + e.getMessage());
+                    Log.e(HOME_LOG_TAG, "Device Update JSON Error: " + e.getMessage());
                 }
             }).start();
         });
@@ -234,34 +241,33 @@ public class ApplianceActivity extends AppCompatActivity {
         new Thread(() -> {
             JSONObject json = new JSONObject();
             try {
-                if (isDigital) {
-                    value = (value >= 1) ? 1 : 0;
-                }
-
-                json.put("pin", oldPin);
+                json.put(Constants.JSON_APPLIANCE_PIN, pin);
 
                 // send the JSONObject to the server
                 RequestBody reqBody = RequestBody.create(json.toString(), MediaType.parse("application/json"));
-                MainActivity.request = new Request.Builder().post(reqBody).url(MainActivity.serverIPAddress + "device/delete/").build();
+                MainActivity.request = new Request.Builder()
+                        .post(reqBody)
+                        .url(MainActivity.serverIPAddress + Constants.API_ENDPOINT_DEVICE_DELETE)
+                        .build();
                 try (Response response = MainActivity.client.newCall(MainActivity.request).execute()) {
                     if (!response.isSuccessful()) {
-                        Log.e("MyTag", "Unexpected code " + response);
+                        Log.e(HOME_LOG_TAG, "Unexpected code " + response);
                     }
 
                     if (response.body() == null) {
-                        Log.e("MyTag", "Response body is null");
+                        Log.e(HOME_LOG_TAG, "Response body is null");
                         return;
                     }
 
-                    Log.e("MyTag", "Response: " + response.body().string());
+                    Log.e(HOME_LOG_TAG, "Response: " + response.body().string());
                     runOnUiThread(this::finish);
                 } catch (IOException e) {
                     e.printStackTrace();
-                    Log.e("MyTag", "Error: " + e.getMessage());
+                    Log.e(HOME_LOG_TAG, "Error: " + e.getMessage());
                 }
             } catch (JSONException e) {
                 e.printStackTrace();
-                Log.e("MyTag", "JSON Error: " + e.getMessage());
+                Log.e(HOME_LOG_TAG, "Device Delete JSON Error: " + e.getMessage());
             }
         }).start();
     }

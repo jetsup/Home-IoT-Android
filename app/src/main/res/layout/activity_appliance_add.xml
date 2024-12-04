@@ -60,16 +60,42 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_weight="3"
-            android:text="Type"
+            android:text="Category"
             android:textSize="20sp"
             android:textStyle="bold" />
 
         <androidx.appcompat.widget.AppCompatSpinner
-            android:id="@+id/spApplianceType"
+            android:id="@+id/spApplianceCategory"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:entries="@array/appliance_types"
+            android:hint="Appliance Name"
+            android:inputType="text"
+            android:text="Kitchen Main Light" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/llApplianceSignal"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/llApplianceType"
+        android:layout_marginTop="10dp"
+        android:orientation="horizontal">
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="3"
+            android:text="Signal"
+            android:textSize="20sp"
+            android:textStyle="bold" />
+
+        <androidx.appcompat.widget.AppCompatSpinner
+            android:id="@+id/spApplianceSignal"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:entries="@array/appliance_signals"
             android:hint="Appliance Name"
             android:inputType="text"
             android:text="Kitchen Main Light" />
@@ -79,7 +105,7 @@
         android:id="@+id/llAppliancePin"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_below="@id/llApplianceType"
+        android:layout_below="@id/llApplianceSignal"
         android:layout_marginTop="10dp"
         android:orientation="horizontal">
 

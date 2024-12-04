@@ -1,5 +1,7 @@
 package com.jetsup.home_iot.screens;
 
+import static com.jetsup.home_iot.utils.Constants.HOME_LOG_TAG;
+
 import android.os.Bundle;
 import android.util.Log;
 import android.view.MenuItem;
@@ -18,6 +20,7 @@ import com.jetsup.home_iot.MainActivity;
 import com.jetsup.home_iot.R;
 import com.jetsup.home_iot.adapters.DeletedAppliancesRecyclerAdapter;
 import com.jetsup.home_iot.models.Appliance;
+import com.jetsup.home_iot.utils.Constants;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -54,15 +57,17 @@ public class DeletedAppliancesActivity extends AppCompatActivity {
             getSupportActionBar().setDisplayShowHomeEnabled(true);
         }
 
-        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.deleted_appliances_main_layout), (v, insets) -> {
-            Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-            v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
-            return insets;
-        });
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(R.id.deleted_appliances_main_layout),
+                (v, insets) -> {
+                    Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
+                    v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+                    return insets;
+                });
 
         recyclerView = findViewById(R.id.deleted_appliances_recycler_view);
 
-        recyclerView.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false));
+        recyclerView.setLayoutManager(new LinearLayoutManager(this, LinearLayoutManager.VERTICAL,
+                false));
 
         adapter = new DeletedAppliancesRecyclerAdapter(this, deletedAppliances);
         recyclerView.setAdapter(adapter);
@@ -70,19 +75,26 @@ public class DeletedAppliancesActivity extends AppCompatActivity {
 
     public void getDeletedAppliances() {
         MainActivity.request = new Request.Builder()
-                .url(MainActivity.serverIPAddress + "devices/deleted/")
+                .url(MainActivity.serverIPAddress + Constants.API_ENDPOINT_DEVICES_DELETED)
                 .build();
 
         try (Response response = MainActivity.client.newCall(MainActivity.request).execute()) {
             if (!response.isSuccessful()) {
-                Log.e("MyTag", "Unexpected code " + response);
+                Log.e(HOME_LOG_TAG, "Unexpected code " + response);
             } else {
-                //{"appliances":[{"name":"LED 1","is_digital":true,"pin":12,"value":1},{"name":"Motor 1","is_digital":false,"pin":14,"value":0}]}
+                /*
+                {
+                    "appliances":[
+                                     {"name":"LED 1","is_digital":true,"pin":12,"value":1, "category": "Bulb"},
+                                     {"name":"Motor 1","is_digital":false,"pin":14,"value":0, "category": "Fan"}
+                                 ]
+                 }
+                 */
                 if (response.body() != null) {
                     List<Appliance> returnedAppliances = new ArrayList<>();
 
                     String body = response.body().string();
-                    Log.i("MyTag", "Response: " + body);
+                    Log.i(HOME_LOG_TAG, "Response: " + body);
                     try {
                         JSONObject json = new JSONObject(body);
                         JSONArray appliancesJSON = json.getJSONArray("appliances");
@@ -90,24 +102,26 @@ public class DeletedAppliancesActivity extends AppCompatActivity {
                         // parse the returned array
                         for (int i = 0; i < appliancesJSON.length(); i++) {
                             String name;
+                            String category;
                             boolean isDigital;
                             int pin;
                             int value;
                             try {
                                 JSONObject applianceJSON = appliancesJSON.getJSONObject(i);
 
-                                name = applianceJSON.getString("name");
-                                isDigital = applianceJSON.getBoolean("is_digital");
-                                pin = applianceJSON.getInt("pin");
-                                value = applianceJSON.getInt("value");
+                                name = applianceJSON.getString(Constants.JSON_APPLIANCE_NAME);
+                                isDigital = applianceJSON.getBoolean(Constants.JSON_APPLIANCE_IS_DIGITAL);
+                                pin = applianceJSON.getInt(Constants.JSON_APPLIANCE_PIN);
+                                value = applianceJSON.getInt(Constants.JSON_APPLIANCE_VALUE);
+                                category = applianceJSON.getString(Constants.JSON_APPLIANCE_CATEGORY);
                             } catch (JSONException e) {
                                 e.printStackTrace();
-                                Log.e("MyTag", "JSON Error: " + e.getMessage());
+                                Log.e(HOME_LOG_TAG, "JSON Error: " + e.getMessage());
                                 continue;
                             }
 
-                            returnedAppliances.add(new Appliance(name, isDigital, pin, value));
-                            Log.i("MyTag", "Appliance: " + name + " " + isDigital + " " + pin + " " + value);
+                            returnedAppliances.add(new Appliance(name, isDigital, pin, value, category));
+                            Log.i(HOME_LOG_TAG, "Appliance: " + name + " " + isDigital + " " + pin + " " + value);
                         }
 
                         runOnUiThread(() -> {
@@ -116,13 +130,13 @@ public class DeletedAppliancesActivity extends AppCompatActivity {
                         });
                     } catch (JSONException e) {
                         e.printStackTrace();
-                        Log.e("MyTag", "JSON Error: " + e.getMessage());
+                        Log.e(HOME_LOG_TAG, "Devices Deleted JSON Error: " + e.getMessage());
                     }
                 }
             }
         } catch (IOException e) {
             e.printStackTrace();
-            Log.e("MyTag", "Error: " + e.getMessage());
+            Log.e(HOME_LOG_TAG, "Error: " + e.getMessage());
         }
     }
 

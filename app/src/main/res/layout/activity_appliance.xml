@@ -65,11 +65,11 @@
             android:textStyle="bold" />
 
         <androidx.appcompat.widget.AppCompatSpinner
-            android:id="@+id/spApplianceType"
+            android:id="@+id/spApplianceSignal"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_weight="1"
-            android:entries="@array/appliance_types"
+            android:entries="@array/appliance_signals"
             android:hint="Appliance Name"
             android:inputType="text"
             android:text="Kitchen Main Light" />

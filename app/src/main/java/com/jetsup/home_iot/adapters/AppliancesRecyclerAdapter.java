@@ -1,5 +1,7 @@
 package com.jetsup.home_iot.adapters;
 
+import static com.jetsup.home_iot.utils.Constants.HOME_LOG_TAG;
+
 import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
@@ -19,6 +21,8 @@ import com.jetsup.home_iot.MainActivity;
 import com.jetsup.home_iot.R;
 import com.jetsup.home_iot.models.Appliance;
 import com.jetsup.home_iot.screens.ApplianceActivity;
+import com.jetsup.home_iot.utils.Constants;
+import com.jetsup.home_iot.utils.HomeUtils;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -31,7 +35,8 @@ import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
 
-public class AppliancesRecyclerAdapter extends RecyclerView.Adapter<AppliancesRecyclerAdapter.ApplianceViewHolder> {
+public class AppliancesRecyclerAdapter extends
+        RecyclerView.Adapter<AppliancesRecyclerAdapter.ApplianceViewHolder> {
     Context context;
     List<Appliance> appliances;
 
@@ -46,16 +51,19 @@ public class AppliancesRecyclerAdapter extends RecyclerView.Adapter<AppliancesRe
 
     @NonNull
     @Override
-    public AppliancesRecyclerAdapter.ApplianceViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
-        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.recycler_appliance_card, parent, false);
+    public AppliancesRecyclerAdapter.ApplianceViewHolder onCreateViewHolder(@NonNull ViewGroup parent,
+                                                                            int viewType) {
+        View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.recycler_appliance_card,
+                parent, false);
         return new ApplianceViewHolder(view);
     }
 
     @Override
     public void onBindViewHolder(@NonNull AppliancesRecyclerAdapter.ApplianceViewHolder holder, int position) {
-        String applianceNameHolder = appliances.get(position).getApplianceName() + " (" + appliances.get(position).getPin() + ")";
+        String applianceNameHolder = appliances.get(position).getApplianceName() +
+                " (" + appliances.get(position).getPin() + ")";
         holder.applianceName.setText(applianceNameHolder);
-        holder.applianceImage.setImageResource(R.drawable.baseline_image_150);
+        holder.applianceImage.setImageResource(HomeUtils.getDrawableByCategory(appliances.get(position).getCategory()));
 
         if (appliances.get(position).isDigital()) {
             holder.applianceSwitch.setVisibility(View.VISIBLE);
@@ -67,32 +75,32 @@ public class AppliancesRecyclerAdapter extends RecyclerView.Adapter<AppliancesRe
                 // update to the server also
                 JSONObject json = new JSONObject();
                 try {
-                    json.put("pin", appliances.get(position).getPin());
-                    json.put("value", appliances.get(position).getValue());
+                    json.put(Constants.JSON_APPLIANCE_PIN, appliances.get(position).getPin());
+                    json.put(Constants.JSON_APPLIANCE_VALUE, appliances.get(position).getValue());
                 } catch (JSONException e) {
                     e.printStackTrace();
-                    Log.e("MyTag", "JSON Error: " + e.getMessage());
+                    Log.e(HOME_LOG_TAG, "JSON Error: " + e.getMessage());
                 }
 
                 new Thread(() -> {
                     RequestBody reqBody = RequestBody.create(json.toString(), MediaType.get("application/json; charset=utf-8"));
                     MainActivity.request = new Request.Builder()
-                            .url(MainActivity.serverIPAddress + "device/value/")
+                            .url(MainActivity.serverIPAddress + Constants.API_ENDPOINT_DEVICE_VALUE)
                             .post(reqBody)
                             .build();
                     try (Response response = MainActivity.client.newCall(MainActivity.request).execute()) {
                         if (!response.isSuccessful()) {
-                            Log.e("MyTag", "Unexpected code " + response);
+                            Log.e(HOME_LOG_TAG, "Unexpected code " + response);
                         } else {
                             if (response.body() == null) {
-                                Log.e("MyTag", "Response body is null");
+                                Log.e(HOME_LOG_TAG, "Response body is null");
                                 return;
                             }
-                            Log.i("MyTag", "Response: " + response.body().string());
+                            Log.i(HOME_LOG_TAG, "Response: " + response.body().string());
                         }
                     } catch (IOException e) {
                         e.printStackTrace();
-                        Log.e("MyTag", "Error: " + e.getMessage());
+                        Log.e(HOME_LOG_TAG, "Error: " + e.getMessage());
                     }
                 }).start();
 
@@ -107,32 +115,32 @@ public class AppliancesRecyclerAdapter extends RecyclerView.Adapter<AppliancesRe
                 // update to the server also
                 JSONObject json = new JSONObject();
                 try {
-                    json.put("pin", appliances.get(position).getPin());
-                    json.put("value", appliances.get(position).getValue());
+                    json.put(Constants.JSON_APPLIANCE_PIN, appliances.get(position).getPin());
+                    json.put(Constants.JSON_APPLIANCE_VALUE, appliances.get(position).getValue());
                 } catch (JSONException e) {
                     e.printStackTrace();
-                    Log.e("MyTag", "JSON Error: " + e.getMessage());
+                    Log.e(HOME_LOG_TAG, "JSON Error: " + e.getMessage());
                 }
 
                 new Thread(() -> {
                     RequestBody reqBody = RequestBody.create(json.toString(), MediaType.get("application/json; charset=utf-8"));
                     MainActivity.request = new Request.Builder()
-                            .url(MainActivity.serverIPAddress + "device/value/")
+                            .url(MainActivity.serverIPAddress + Constants.API_ENDPOINT_DEVICE_VALUE)
                             .post(reqBody)
                             .build();
                     try (Response response = MainActivity.client.newCall(MainActivity.request).execute()) {
                         if (!response.isSuccessful()) {
-                            Log.e("MyTag", "Unexpected code " + response);
+                            Log.e(HOME_LOG_TAG, "Unexpected code " + response);
                         } else {
                             if (response.body() == null) {
-                                Log.e("MyTag", "Response body is null");
+                                Log.e(HOME_LOG_TAG, "Response body is null");
                                 return;
                             }
-                            Log.i("MyTag", "Response: " + response.body().string());
+                            Log.i(HOME_LOG_TAG, "Response: " + response.body().string());
                         }
                     } catch (IOException e) {
                         e.printStackTrace();
-                        Log.e("MyTag", "Error: " + e.getMessage());
+                        Log.e(HOME_LOG_TAG, "Error: " + e.getMessage());
                     }
                 }).start();
             });
@@ -145,6 +153,7 @@ public class AppliancesRecyclerAdapter extends RecyclerView.Adapter<AppliancesRe
             intent.putExtra("isDigital", appliances.get(position).isDigital());
             intent.putExtra("pin", appliances.get(position).getPin());
             intent.putExtra("value", appliances.get(position).getValue());
+            intent.putExtra("category", appliances.get(position).getCategory());
             context.startActivity(intent);
         });
     }

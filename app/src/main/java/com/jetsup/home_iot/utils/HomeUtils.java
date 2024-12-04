@@ -5,6 +5,7 @@ import static com.jetsup.home_iot.MainActivity.lastDataReceiveTime;
 import static com.jetsup.home_iot.MainActivity.request;
 import static com.jetsup.home_iot.MainActivity.serverIPAddress;
 import static com.jetsup.home_iot.MainActivity.serverReachable;
+import static com.jetsup.home_iot.utils.Constants.HOME_LOG_TAG;
 
 import android.app.Activity;
 import android.content.Context;
@@ -18,14 +19,12 @@ import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
 
+import com.jetsup.home_iot.R;
+
 import okhttp3.Request;
 import okhttp3.Response;
 
 public class HomeUtils {
-    public static int[] ESP32_ALLOWED_IO_PINS = {2, 4, 5, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32, 33};
-    public static int[] ESP32_ALLOWED_I_PINS = {34, 35, 36, 39};
-    public static int[] ESP32_ALLOWED_O_PINS = {12};
-
     // Networking
     public static boolean isWiFiNetworkConnected(Context context) {
         ConnectivityManager connectivityManager =
@@ -61,13 +60,13 @@ public class HomeUtils {
     // Server
     public static boolean pingServer(Activity activity, String ipHostname) {
         // send a get request to http://ipHostname/api/v1/ping/ using okHttp if the status is 200, then return true
-        String pingURL = "http://" + ipHostname + "/api/v1/ping/";
+        String pingURL = "http://" + ipHostname + Constants.API_ENDPOINT_ROOT + Constants.API_ENDPOINT_PING;
         final Request req = new Request.Builder()
                 .url(pingURL)
                 .build();
 
         try (Response response = client.newCall(req).execute()) {
-            Log.i("MyTag", "Response: " + response);
+            Log.i(HOME_LOG_TAG, "Response: " + response);
 
             if (response.isSuccessful()) {
                 serverReachable = true;
@@ -75,26 +74,54 @@ public class HomeUtils {
 
                 // TODO: later add check for https
                 if (serverIPAddress == null || !serverIPAddress.startsWith("http://" + ipHostname) ||
-                        !serverIPAddress.endsWith("/api/v1/")) {
-                    serverIPAddress = "http://" + ipHostname + "/api/v1/";
+                        !serverIPAddress.endsWith(Constants.API_ENDPOINT_ROOT)) {
+                    serverIPAddress = "http://" + ipHostname + Constants.API_ENDPOINT_ROOT;
                 }
 
                 request = new Request.Builder()
-                        .url(serverIPAddress + "stats/")
+                        .url(serverIPAddress + Constants.API_ENDPOINT_STATS)
                         .build();
             } else {
 
                 serverReachable = false;
-                Log.e("MyTag", "Server is not reachable");
+                Log.e(HOME_LOG_TAG, "Server is not reachable");
                 Toast.makeText(activity, "Server is not reachable", Toast.LENGTH_SHORT).show();
             }
         } catch (Exception e) {
             e.printStackTrace();
             serverReachable = false;
-            Log.e("MyTag", "Ping Error: " + e.getMessage());
+            Log.e(HOME_LOG_TAG, "Ping Error: " + e.getMessage());
         }
 
         return serverReachable;
+    }
+
+    // Utility
+    public static int getDrawableByCategory(String category) {
+        /*"Bulb", "Snake Lights", "Fan", "TV", "Refrigerator",
+            "Washing Machine", "Heater", "Pressure Mattress", "Curtain"*/
+        switch (category) {
+            case "bulb":
+                return R.drawable.baseline_lightbulb_outline_150;
+            case "snake lights":
+                return R.drawable.baseline_straighten_150;
+            case "fan":
+                return R.drawable.baseline_mode_fan_off_150;
+            case "tv":
+                return R.drawable.baseline_live_tv_150;
+            case "refrigerator":
+                return R.drawable.baseline_kitchen_150;
+            case "washing machine":
+                return R.drawable.baseline_local_laundry_service_150;
+            case "heater":
+                return R.drawable.baseline_fireplace_150;
+            case "pressure mattress":
+                return R.drawable.baseline_bed_150;
+            case "curtain":
+                return R.drawable.baseline_curtains_150;
+            default:
+                return R.drawable.baseline_image_150;
+        }
     }
 
 }

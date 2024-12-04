@@ -1,13 +1,15 @@
 package com.jetsup.home_iot.screens;
 
-import static com.jetsup.home_iot.utils.HomeUtils.ESP32_ALLOWED_IO_PINS;
-import static com.jetsup.home_iot.utils.HomeUtils.ESP32_ALLOWED_O_PINS;
+import static com.jetsup.home_iot.utils.Constants.ESP32_ALLOWED_IO_PINS;
+import static com.jetsup.home_iot.utils.Constants.ESP32_ALLOWED_O_PINS;
+import static com.jetsup.home_iot.utils.Constants.HOME_LOG_TAG;
 
 import android.os.Bundle;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Log;
 import android.view.MenuItem;
+import android.widget.ArrayAdapter;
 
 import androidx.activity.EdgeToEdge;
 import androidx.annotation.NonNull;
@@ -23,6 +25,7 @@ import com.google.android.material.textfield.TextInputEditText;
 import com.google.android.material.textfield.TextInputLayout;
 import com.jetsup.home_iot.MainActivity;
 import com.jetsup.home_iot.R;
+import com.jetsup.home_iot.utils.Constants;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -41,7 +44,8 @@ public class ApplianceAddActivity extends AppCompatActivity {
     TextInputEditText textInputEditTextName;
     TextInputLayout textInputLayoutPin;
     TextInputEditText textInputEditTextPin;
-    AppCompatSpinner spinnerType;
+    AppCompatSpinner spinnerCategory;
+    AppCompatSpinner spinnerSignal;
     AppCompatButton btnAdd;
 
     String applianceName;
@@ -77,7 +81,12 @@ public class ApplianceAddActivity extends AppCompatActivity {
         textInputLayoutPin = findViewById(R.id.tlAppliancePin);
         textInputEditTextPin = findViewById(R.id.etAppliancePin);
 
-        spinnerType = findViewById(R.id.spApplianceType);
+        spinnerCategory = findViewById(R.id.spApplianceCategory);
+        spinnerSignal = findViewById(R.id.spApplianceSignal);
+
+        // set the category spinner adapter to a String array of device categorie
+        spinnerCategory.setAdapter(new ArrayAdapter<>(this,
+                android.R.layout.simple_spinner_dropdown_item, Constants.DEVICE_CATEGORIES));
 
         btnAdd = findViewById(R.id.btnApplianceAdd);
 
@@ -91,7 +100,8 @@ public class ApplianceAddActivity extends AppCompatActivity {
                 if (s.length() == 0) return;
 
                 if (!s.toString().matches("^[1-9][0-9]*$")) {
-                    String validInput = s.toString().replaceAll("[^1-9]*", ""); // Keep only valid numbers
+                    // Keep only valid numbers
+                    String validInput = s.toString().replaceAll("[^1-9]*", "");
                     textInputEditTextPin.setText(validInput);
 
                     textInputLayoutPin.setError("Only numbers allowed starting with 1-9!");
@@ -115,7 +125,7 @@ public class ApplianceAddActivity extends AppCompatActivity {
                 textInputLayoutPin.setError(null);
             }
             pin = Integer.parseInt(Objects.requireNonNull(textInputEditTextPin.getText()).toString());
-            isDigital = spinnerType.getSelectedItemPosition() == 0;
+            isDigital = spinnerSignal.getSelectedItemPosition() == 0;
 
             if (applianceName.isEmpty()) {
                 textInputLayoutName.setError("Appliance name cannot be empty!");
@@ -141,33 +151,39 @@ public class ApplianceAddActivity extends AppCompatActivity {
             new Thread(() -> {
                 JSONObject json = new JSONObject();
                 try {
-                    json.put("name", applianceName);
-                    json.put("is_digital", isDigital);
-                    json.put("pin", pin);
+                    json.put(Constants.JSON_APPLIANCE_NAME, applianceName);
+                    json.put(Constants.JSON_APPLIANCE_IS_DIGITAL, isDigital);
+                    json.put(Constants.JSON_APPLIANCE_PIN, pin);
+                    json.put(Constants.JSON_APPLIANCE_CATEGORY,
+                            spinnerCategory.getSelectedItem().toString().toLowerCase());
 
                     // send the JSONObject to the server
-                    RequestBody reqBody = RequestBody.create(json.toString(), MediaType.parse("application/json"));
-                    MainActivity.request = new Request.Builder().post(reqBody).url(MainActivity.serverIPAddress + "device/add/").build();
+                    RequestBody reqBody = RequestBody.create(json.toString(),
+                            MediaType.parse("application/json"));
+                    MainActivity.request = new Request.Builder()
+                            .post(reqBody)
+                            .url(MainActivity.serverIPAddress + Constants.API_ENDPOINT_DEVICE_ADD)
+                            .build();
                     try (Response response = MainActivity.client.newCall(MainActivity.request).execute()) {
                         if (!response.isSuccessful()) {
-                            Log.e("MyTag", "Unexpected code " + response);
+                            Log.e(HOME_LOG_TAG, "Unexpected code " + response);
                             return;
                         }
 
                         if (response.body() == null) {
-                            Log.e("MyTag", "Response body is null");
+                            Log.e(HOME_LOG_TAG, "Response body is null");
                             return;
                         }
 
-                        Log.e("MyTag", "Response: " + response.body().string());
+                        Log.e(HOME_LOG_TAG, "Response: " + response.body().string());
                         runOnUiThread(this::finish);
                     } catch (IOException e) {
                         e.printStackTrace();
-                        Log.e("MyTag", "Error: " + e.getMessage());
+                        Log.e(HOME_LOG_TAG, "Error: " + e.getMessage());
                     }
                 } catch (JSONException e) {
                     e.printStackTrace();
-                    Log.e("MyTag", "JSON Error: " + e.getMessage());
+                    Log.e(HOME_LOG_TAG, "Device Add JSON Error: " + e.getMessage());
                 }
             }).start();
         });

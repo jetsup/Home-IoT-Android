@@ -21,4 +21,16 @@
         app:title="@string/pref_title_server_query_timeout"
         app:useSimpleSummaryProvider="true" />
 
+    <PreferenceCategory
+        app:key="@string/pref_category_key_danger_zone"
+        app:title="@string/pref_category_title_danger_zone">
+
+        <Preference
+            app:icon="@drawable/baseline_delete_forever_24"
+            app:key="@string/pref_key_reset"
+            app:title="@string/pref_title_reset" />
+
+
+    </PreferenceCategory>
+
 </PreferenceScreen>

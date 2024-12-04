@@ -1,5 +1,7 @@
 package com.jetsup.home_iot;
 
+import static com.jetsup.home_iot.utils.Constants.HOME_LOG_TAG;
+
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -24,6 +26,7 @@ import com.jetsup.home_iot.screens.AboutActivity;
 import com.jetsup.home_iot.screens.AppliancesActivity;
 import com.jetsup.home_iot.screens.DeletedAppliancesActivity;
 import com.jetsup.home_iot.screens.SettingsActivity;
+import com.jetsup.home_iot.utils.Constants;
 import com.jetsup.home_iot.utils.HomeUtils;
 
 import org.json.JSONException;
@@ -161,7 +164,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }).start();
 
-                serverIPAddress = "http://" + ipHostname + "/api/v1/";
+                serverIPAddress = "http://" + ipHostname + Constants.API_ENDPOINT_ROOT;
             } else { // disconnect
                 shouldQuery = false;
                 serverReachable = false;
@@ -227,17 +230,17 @@ public class MainActivity extends AppCompatActivity {
                         lastDataReceiveTime < System.currentTimeMillis() - DATA_LATENCY_BEFORE_CHECKING_CONNECTION) {
                     try (Response response = client.newCall(request).execute()) {
                         if (!response.isSuccessful()) {
-                            Log.e("MyTag", "Unexpected code " + response);
+                            Log.e(HOME_LOG_TAG, "Unexpected code " + response);
                             continue;
                         }
 
                         if (response.body() == null) {
-                            Log.d("MyTag", "Response body is null");
+                            Log.d(HOME_LOG_TAG, "Response body is null");
                             continue;
                         }
 
                         String body = response.body().string();
-                        Log.i("MyTag", "Response: " + body);
+                        Log.i(HOME_LOG_TAG, "Response: " + body);
 
                         // parse JSON
                         try {
@@ -247,7 +250,7 @@ public class MainActivity extends AppCompatActivity {
                             time = json.getString("time");
                             date = json.getString("date");
                         } catch (JSONException e) {
-                            Log.e("MyTag", "JSON Error: " + e.getMessage());
+                            Log.e(HOME_LOG_TAG, "JSON Error: " + e.getMessage());
                             continue;
                         }
                         // convert date to human readable format dd/MM/yyyy
@@ -271,7 +274,7 @@ public class MainActivity extends AppCompatActivity {
                         e.printStackTrace();
                         HomeUtils.pingServer(MainActivity.this, ipHostname);
 
-                        Log.e("MyTag", "Thread Error: " + e.getMessage());
+                        Log.e(HOME_LOG_TAG, "Thread Error: " + e.getMessage());
                     }
 
                     try {
@@ -281,7 +284,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                 } else {
                     if (ipHostname != null && shouldQuery && !serverReachable) {
-                        Log.i("MyTag", "While Else: " + ipHostname);
+                        Log.i(HOME_LOG_TAG, "While Else: " + ipHostname);
                         HomeUtils.pingServer(MainActivity.this, ipHostname);
                     }
                 }
@@ -305,8 +308,6 @@ public class MainActivity extends AppCompatActivity {
             String ipAddress = sharedPreferences.getString(ipAddressKey, null);
 
             if (ipAddress != null && !ipAddress.isEmpty()) {
-                Toast.makeText(this, "IP Address: " + ipAddress, Toast.LENGTH_SHORT).show();
-
                 // TODO: modularize this code
                 if (!HomeUtils.isWiFiNetworkConnected(MainActivity.this)) {
                     Toast.makeText(MainActivity.this, "Please connect to WiFi network", Toast.LENGTH_LONG).show();
@@ -328,7 +329,7 @@ public class MainActivity extends AppCompatActivity {
 
                             btnConnectToServer.setText(R.string.disconnect);
                         });
-                        serverIPAddress = "http://" + ipAddress + "/api/v1/";
+                        serverIPAddress = "http://" + ipAddress + Constants.API_ENDPOINT_ROOT;
                         shouldQuery = true;
 
                         if (queryThread != null && !queryThread.isAlive()) {
@@ -365,7 +366,7 @@ public class MainActivity extends AppCompatActivity {
         super.onResume();
         if (serverReachable) {
             request = new Request.Builder()
-                    .url(serverIPAddress + "stats/")
+                    .url(serverIPAddress + Constants.API_ENDPOINT_STATS)
                     .build();
 
             mainThreadServerRun = true;

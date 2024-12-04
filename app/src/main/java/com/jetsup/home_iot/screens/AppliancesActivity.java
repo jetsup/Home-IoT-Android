@@ -1,8 +1,11 @@
 package com.jetsup.home_iot.screens;
 
+import static com.jetsup.home_iot.utils.Constants.HOME_LOG_TAG;
+
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Menu;
 import android.view.MenuItem;
 
 import androidx.activity.EdgeToEdge;
@@ -20,6 +23,7 @@ import com.jetsup.home_iot.MainActivity;
 import com.jetsup.home_iot.R;
 import com.jetsup.home_iot.adapters.AppliancesRecyclerAdapter;
 import com.jetsup.home_iot.models.Appliance;
+import com.jetsup.home_iot.utils.Constants;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -77,19 +81,19 @@ public class AppliancesActivity extends AppCompatActivity {
 
     private void getAppliances() {
         MainActivity.request = new Request.Builder()
-                .url(MainActivity.serverIPAddress + "devices/")
+                .url(MainActivity.serverIPAddress + Constants.API_ENDPOINT_DEVICES)
                 .build();
 
         try (Response response = MainActivity.client.newCall(MainActivity.request).execute()) {
             if (!response.isSuccessful()) {
-                Log.e("MyTag", "Unexpected code " + response);
+                Log.e(HOME_LOG_TAG, "Unexpected code " + response);
             } else {
                 //{"appliances":[{"name":"LED 1","is_digital":true,"pin":12,"value":1},{"name":"Motor 1","is_digital":false,"pin":14,"value":0}]}
                 if (response.body() != null) {
                     List<Appliance> returnedAppliances = new ArrayList<>();
 
                     String body = response.body().string();
-                    Log.i("MyTag", "Response: " + body);
+                    Log.i(HOME_LOG_TAG, "Response: " + body);
                     try {
                         JSONObject json = new JSONObject(body);
                         JSONArray appliancesJSON = json.getJSONArray("appliances");
@@ -98,13 +102,14 @@ public class AppliancesActivity extends AppCompatActivity {
                         for (int i = 0; i < appliancesJSON.length(); i++) {
                             JSONObject applianceJSON = appliancesJSON.getJSONObject(i);
 
-                            String name = applianceJSON.getString("name");
-                            boolean isDigital = applianceJSON.getBoolean("is_digital");
-                            int pin = applianceJSON.getInt("pin");
-                            int value = applianceJSON.getInt("value");
+                            String name = applianceJSON.getString(Constants.JSON_APPLIANCE_NAME);
+                            boolean isDigital = applianceJSON.getBoolean(Constants.JSON_APPLIANCE_IS_DIGITAL);
+                            int pin = applianceJSON.getInt(Constants.JSON_APPLIANCE_PIN);
+                            int value = applianceJSON.getInt(Constants.JSON_APPLIANCE_VALUE);
+                            String category = applianceJSON.getString(Constants.JSON_APPLIANCE_CATEGORY);
 
-                            returnedAppliances.add(new Appliance(name, isDigital, pin, value));
-                            Log.i("MyTag", "Appliance: " + name + " " + isDigital + " " + pin + " " + value);
+                            returnedAppliances.add(new Appliance(name, isDigital, pin, value, category));
+                            Log.i(HOME_LOG_TAG, "Appliance: " + name + " " + isDigital + " " + pin + " " + value);
                         }
 
                         runOnUiThread(() -> {
@@ -113,13 +118,13 @@ public class AppliancesActivity extends AppCompatActivity {
                         });
                     } catch (JSONException e) {
                         e.printStackTrace();
-                        Log.e("MyTag", "JSON Error: " + e.getMessage());
+                        Log.e(HOME_LOG_TAG, "Devices JSON Error: " + e.getMessage());
                     }
                 }
             }
         } catch (IOException e) {
             e.printStackTrace();
-            Log.e("MyTag", "Error: " + e.getMessage());
+            Log.e(HOME_LOG_TAG, "Error: " + e.getMessage());
         }
     }
 
@@ -135,7 +140,16 @@ public class AppliancesActivity extends AppCompatActivity {
         if (item.getItemId() == android.R.id.home) {
             getOnBackPressedDispatcher().onBackPressed();
             return true;
+        } else if (item.getItemId() == R.id.appliance_deleted) {
+            startActivity(new Intent(AppliancesActivity.this, DeletedAppliancesActivity.class));
+            return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.appliances_options_menu, menu);
+        return super.onCreateOptionsMenu(menu);
     }
 }
