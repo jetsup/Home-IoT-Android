@@ -20,6 +20,7 @@ import androidx.preference.PreferenceManager;
 
 import com.ekn.gruzer.gaugelibrary.HalfGauge;
 import com.ekn.gruzer.gaugelibrary.Range;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.android.material.navigation.NavigationView;
 import com.google.android.material.textfield.TextInputEditText;
 import com.jetsup.home_iot.screens.AboutActivity;
@@ -49,12 +50,14 @@ public class MainActivity extends AppCompatActivity {
     public static String serverIPAddress;
     public static long lastDataReceiveTime;
     private static volatile boolean mainThreadServerRun = false;
+
     TextView tvTime;
     TextView tvDate;
     HalfGauge gaugeTemperature;
     HalfGauge gaugeHumidity;
     AppCompatButton btnConnectToServer;
     TextInputEditText etServerAddress;
+    FloatingActionButton fabMainAppliance;
 
     Thread queryThread;
     long serverFetchInterval;
@@ -78,6 +81,15 @@ public class MainActivity extends AppCompatActivity {
         btnConnectToServer = findViewById(R.id.btnConnectServer);
         etServerAddress = findViewById(R.id.etServerAddress);
 
+        fabMainAppliance = findViewById(R.id.fabMainAppliances);
+        fabMainAppliance.setOnClickListener(v -> {
+            if (!serverReachable) {
+                Toast.makeText(this, "Server not reachable", Toast.LENGTH_SHORT).show();
+            } else {
+                startActivity(new Intent(MainActivity.this, AppliancesActivity.class));
+            }
+        });
+
         NavigationView navigationView = findViewById(R.id.main_activity_navigation_view);
         navigationView.setNavigationItemSelectedListener(item -> {
             /*if (item.getItemId() == R.id.nav_home) {
@@ -87,21 +99,17 @@ public class MainActivity extends AppCompatActivity {
                 if (!serverReachable) {
                     Toast.makeText(this, "Server not reachable", Toast.LENGTH_SHORT).show();
                 } else {
-                    Toast.makeText(this, "Appliances", Toast.LENGTH_SHORT).show();
                     startActivity(new Intent(MainActivity.this, AppliancesActivity.class));
                 }
             } else if (item.getItemId() == R.id.nav_deleted_appliances) {
                 if (!serverReachable) {
                     Toast.makeText(this, "Server not reachable", Toast.LENGTH_SHORT).show();
                 } else {
-                    Toast.makeText(this, "Deleted Appliances", Toast.LENGTH_SHORT).show();
                     startActivity(new Intent(MainActivity.this, DeletedAppliancesActivity.class));
                 }
             } else if (item.getItemId() == R.id.nav_settings) {
-                Toast.makeText(this, "Settings", Toast.LENGTH_SHORT).show();
                 startActivity(new Intent(MainActivity.this, SettingsActivity.class));
             } else if (item.getItemId() == R.id.nav_about) {
-                Toast.makeText(this, "About", Toast.LENGTH_SHORT).show();
                 startActivity(new Intent(MainActivity.this, AboutActivity.class));
             }
             // close the drawer
