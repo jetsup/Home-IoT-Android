@@ -73,6 +73,12 @@ public class HomeUtils {
                 serverReachable = true;
                 lastDataReceiveTime = System.currentTimeMillis();
 
+                // TODO: later add check for https
+                if (serverIPAddress == null || !serverIPAddress.startsWith("http://" + ipHostname) ||
+                        !serverIPAddress.endsWith("/api/v1/")) {
+                    serverIPAddress = "http://" + ipHostname + "/api/v1/";
+                }
+
                 request = new Request.Builder()
                         .url(serverIPAddress + "stats/")
                         .build();
@@ -85,7 +91,7 @@ public class HomeUtils {
         } catch (Exception e) {
             e.printStackTrace();
             serverReachable = false;
-            Log.e("MyTag", "Error: " + e.getMessage());
+            Log.e("MyTag", "Ping Error: " + e.getMessage());
         }
 
         return serverReachable;

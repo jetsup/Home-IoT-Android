@@ -1,9 +1,2 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources>
-    <string name="connect">Connect</string>
-    <string name="disconnect">Disconnect</string>
-    <string-array name="appliance_types">
-        <item>Digital</item>
-        <item>Analog</item>
-    </string-array>
-</resources>
+<resources></resources>

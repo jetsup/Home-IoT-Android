@@ -18,6 +18,19 @@
     <string name="attachment_summary_on">Automatically download attachments for incoming emails
     </string>
     <string name="attachment_summary_off">Only download attachments when manually requested</string>
+    <string name="pref_category_key_system">pref_system</string>
+    <string name="pref_category_title_system">System</string>
+    <string name="pref_category_key_about">pref_about</string>
+    <string name="pref_category_title_about">About</string>
+    <string name="pref_build_number">Build Number</string>
+    <string name="pref_key_system_settings">pref_system_settings</string>
+    <string name="pref_title_system_settings">System Settings</string>
+    <string name="pref_key_server_ip_address">pref_server_ip</string>
+    <string name="pref_title_server_ip_address">Server IP Address</string>
+    <string name="pref_title_server_query_timeout">Server Request Timeout</string>
+    <string name="pref_key_server_ip_static">pref_server_ip_static</string>
+    <string name="pref_title_server_ip_static">Static Server IP</string>
+    <string name="pref_key_server_query_interval">pref_server_query_interval</string>
     <string-array name="appliance_types">
         <item>Digital</item>
         <item>Analog</item>

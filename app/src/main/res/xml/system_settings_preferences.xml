@@ -1,0 +1,24 @@
+<PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
+
+    <SwitchPreferenceCompat
+        app:defaultValue="true"
+        app:key="@string/pref_key_server_ip_static"
+        app:summary="Has the server IP address been set manually?"
+        app:title="@string/pref_title_server_ip_static"
+        app:useSimpleSummaryProvider="true" />
+
+    <EditTextPreference
+        app:dependency="@string/pref_key_server_ip_static"
+        app:key="@string/pref_key_server_ip_address"
+        app:title="@string/pref_title_server_ip_address"
+        app:useSimpleSummaryProvider="true" />
+
+    <ListPreference
+        app:defaultValue="reply"
+        app:entries="@array/pref_server_query_timeout_entries"
+        app:entryValues="@array/pref_server_query_timeout_values"
+        app:key="@string/pref_key_server_query_interval"
+        app:title="@string/pref_title_server_query_timeout"
+        app:useSimpleSummaryProvider="true" />
+
+</PreferenceScreen>

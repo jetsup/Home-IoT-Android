@@ -1,15 +1,24 @@
 <PreferenceScreen xmlns:app="http://schemas.android.com/apk/res-auto">
 
-    <Preference
-        app:fragment="com.jetsup.home_iot.screens.SettingsActivity$MessagesFragment"
-        app:icon="@drawable/messages"
-        app:key="messages_header"
-        app:title="@string/messages_header" />
+    <PreferenceCategory
+        app:key="@string/pref_category_key_system"
+        app:title="@string/pref_category_title_system">
+        <Preference
+            app:fragment="com.jetsup.home_iot.screens.SettingsActivity$SystemSettingsFragment"
+            app:icon="@drawable/baseline_house_24"
+            app:key="@string/pref_key_system_settings"
+            app:title="@string/pref_title_system_settings" />
 
-    <Preference
-        app:fragment="com.jetsup.home_iot.screens.SettingsActivity$SyncFragment"
-        app:icon="@drawable/sync"
-        app:key="sync_header"
-        app:title="@string/sync_header" />
+    </PreferenceCategory>
+
+    <PreferenceCategory
+        app:key="@string/pref_category_key_about"
+        app:title="@string/pref_category_title_about">
+        <Preference
+            app:icon="@drawable/baseline_info_outline_24"
+            app:key="about_header"
+            app:summary="0.0.1"
+            app:title="@string/pref_build_number" />
+    </PreferenceCategory>
 
 </PreferenceScreen>

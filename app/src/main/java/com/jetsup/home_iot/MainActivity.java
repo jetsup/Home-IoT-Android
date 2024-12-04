@@ -1,6 +1,7 @@
 package com.jetsup.home_iot;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.util.Log;
 import android.widget.TextView;
@@ -13,6 +14,7 @@ import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowInsetsCompat;
 import androidx.drawerlayout.widget.DrawerLayout;
+import androidx.preference.PreferenceManager;
 
 import com.ekn.gruzer.gaugelibrary.HalfGauge;
 import com.ekn.gruzer.gaugelibrary.Range;
@@ -50,6 +52,9 @@ public class MainActivity extends AppCompatActivity {
     HalfGauge gaugeHumidity;
     AppCompatButton btnConnectToServer;
     TextInputEditText etServerAddress;
+
+    Thread queryThread;
+    long serverFetchInterval;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -211,7 +216,7 @@ public class MainActivity extends AppCompatActivity {
         gaugeHumidity.addRange(rangeHumidityHumid);
         gaugeHumidity.setFormatter(value -> String.format(Locale.getDefault(), "%.1f%%", value));
 
-        new Thread(() -> {
+        queryThread = new Thread(() -> {
             double temperature, previousTemperature = 0;
             double humidity, previousHumidity = 0;
             String time;
@@ -270,7 +275,7 @@ public class MainActivity extends AppCompatActivity {
                     }
 
                     try {
-                        Thread.sleep(1000);
+                        Thread.sleep(serverFetchInterval);
                     } catch (InterruptedException e) {
                         throw new RuntimeException(e);
                     }
@@ -281,7 +286,78 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
             }
-        }).start();
+        });
+
+        if (shouldQuery && mainThreadServerRun && serverReachable && serverIPAddress != null) {
+            queryThread.start();
+        }
+
+
+        // get server IP if set and establish connection
+        SharedPreferences sharedPreferences = PreferenceManager.getDefaultSharedPreferences(this);
+
+        String ipStaticKey = getString(R.string.pref_key_server_ip_static);
+        String ipAddressKey = getString(R.string.pref_key_server_ip_address);
+
+        // Check if static IP preference is enabled
+        boolean isStaticIp = sharedPreferences.getBoolean(ipStaticKey, false);
+        if (isStaticIp) {
+            String ipAddress = sharedPreferences.getString(ipAddressKey, null);
+
+            if (ipAddress != null && !ipAddress.isEmpty()) {
+                Toast.makeText(this, "IP Address: " + ipAddress, Toast.LENGTH_SHORT).show();
+
+                // TODO: modularize this code
+                if (!HomeUtils.isWiFiNetworkConnected(MainActivity.this)) {
+                    Toast.makeText(MainActivity.this, "Please connect to WiFi network", Toast.LENGTH_LONG).show();
+                    HomeUtils.showWifiSettingsDialog(MainActivity.this);
+                    return;
+                }
+
+                new Thread(() -> {
+                    if (!HomeUtils.pingServer(MainActivity.this, ipAddress)) {
+                        MainActivity.this.runOnUiThread(() -> {
+                            Toast.makeText(MainActivity.this, "The server 'http://" + ipAddress + "' did not respond!",
+                                    Toast.LENGTH_SHORT).show();
+                        });
+                    } else {
+                        runOnUiThread(() -> {
+                            etServerAddress.setText(ipAddress);
+                            etServerAddress.setEnabled(false);
+                            mainThreadServerRun = true;
+
+                            btnConnectToServer.setText(R.string.disconnect);
+                        });
+                        serverIPAddress = "http://" + ipAddress + "/api/v1/";
+                        shouldQuery = true;
+
+                        if (queryThread != null && !queryThread.isAlive()) {
+                            queryThread.start();
+                        }
+                    }
+                }).start();
+            }
+        }
+
+        String serverFetchIntervalKey = sharedPreferences
+                .getString(getString(R.string.pref_key_server_query_interval), "pref_1000ms");
+
+        String[] valuesArray = getResources().getStringArray(R.array.pref_server_query_timeout_values);
+        String[] entriesArray = getResources().getStringArray(R.array.pref_server_query_timeout_entries);
+
+        String selectedValue = null;
+        for (int i = 0; i < valuesArray.length; i++) {
+            if (valuesArray[i].equals(serverFetchIntervalKey)) {
+                selectedValue = entriesArray[i];
+                break;
+            }
+        }
+
+        if (selectedValue != null) {
+            serverFetchInterval = Long.parseLong(selectedValue);
+        } else {
+            serverFetchInterval = 5000;
+        }
     }
 
     @Override

@@ -1,12 +1,27 @@
 <resources>
-    <!-- Reply Preference -->
-    <string-array name="reply_entries">
-        <item>Reply</item>
-        <item>Reply to all</item>
+    <string-array name="pref_server_query_timeout_entries">
+        <!--        <item>500</item>-->
+        <item>1000</item>
+        <item>1500</item>
+        <item>2000</item>
+        <item>2500</item>
+        <item>3000</item>
+        <item>3500</item>
+        <item>4000</item>
+        <item>4500</item>
+        <item>5000</item>
     </string-array>
 
-    <string-array name="reply_values">
-        <item>reply</item>
-        <item>reply_all</item>
+    <string-array name="pref_server_query_timeout_values">
+        <!--        <item>pref_500ms</item>-->
+        <item>pref_1000ms</item>
+        <item>pref_1500ms</item>
+        <item>pref_2000ms</item>
+        <item>pref_2500ms</item>
+        <item>pref_3000ms</item>
+        <item>pref_3500ms</item>
+        <item>pref_4000ms</item>
+        <item>pref_4500ms</item>
+        <item>pref_5000ms</item>
     </string-array>
 </resources>
