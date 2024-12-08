@@ -43,6 +43,8 @@ public class AppliancesActivity extends AppCompatActivity {
     AppliancesRecyclerAdapter adapter;
     FloatingActionButton fabAddAppliance;
 
+    Thread monitorThread;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -77,6 +79,25 @@ public class AppliancesActivity extends AppCompatActivity {
 
         adapter = new AppliancesRecyclerAdapter(this, appliances);
         recyclerView.setAdapter(adapter);
+
+        monitorThread = new Thread(() -> {
+            while (true) {
+                try {
+                    Thread.sleep(1000);
+                    getAppliances();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                    Log.e(HOME_LOG_TAG, "Monitor Thread Error: " + e.getMessage());
+                }
+
+                try {
+                    Thread.sleep(2000);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                    Log.e(HOME_LOG_TAG, "Monitor Thread Error: " + e.getMessage());
+                }
+            }
+        });
     }
 
     private void getAppliances() {
@@ -131,8 +152,25 @@ public class AppliancesActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         super.onResume();
+        try {
+            monitorThread.start();
+        } catch (IllegalThreadStateException e) {
+            e.printStackTrace();
+            Log.e(HOME_LOG_TAG, "Monitor Thread Error: " + e.getMessage());
+        }
+    }
 
-        new Thread(this::getAppliances).start();
+    @Override
+    protected void onPause() {
+        super.onPause();
+
+        try {
+            monitorThread.interrupt();
+        } catch (SecurityException e) {
+            // should not happen
+            e.printStackTrace();
+            Log.e(HOME_LOG_TAG, "Monitor Thread Error: " + e.getMessage());
+        }
     }
 
     @Override
