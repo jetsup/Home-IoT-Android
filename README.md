@@ -2,7 +2,8 @@
 
 ## Introduction
 
-This project is a simple home IoT system that allows you to control your home devices from an
+This project is a simple home IoT system that allows you to control
+your [home devices](https://www.github.com/jetsup/HomeIoT.git) from an
 Android app.
 This is a client application that communicates with a server application that is running on a
 Microcontroller.
@@ -45,6 +46,10 @@ responsible for sending commands to the server application.
 - The UI was designed for a phone with a screen size of 6.8 inches running Android 13. This means
   that the UI may not look good on other devices.
 
+## Future Improvements/Ideas
+
+- Add support for BLE communication
+
 ## License
 
-This project is licensed under the MIT License.
+[![License: MIT](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
